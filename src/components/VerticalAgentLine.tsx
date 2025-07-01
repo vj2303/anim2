@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { AIAgents } from '../constants/AIAgents';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
@@ -21,6 +21,30 @@ export const VerticalAgentLine: React.FC<VerticalAgentLineProps> = ({ scrollPosi
   const lineOffsetX = -18; // Distance to the left of the path
   const baseY = 0; // Base Y position
   const agentSpacing = lineHeight / (AIAgents.length - 1);
+
+  // Music player state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePlayPause = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    const handleEnded = () => setIsPlaying(false);
+    audioRef.current.addEventListener('ended', handleEnded);
+    return () => {
+      audioRef.current?.removeEventListener('ended', handleEnded);
+    };
+  }, []);
 
   useEffect(() => {
     // Create group if not exists
@@ -113,5 +137,29 @@ export const VerticalAgentLine: React.FC<VerticalAgentLineProps> = ({ scrollPosi
     };
   }, [onAgentClick, scene]);
 
-  return null;
+  return (
+    <>
+      {/* Music Play/Pause Button */}
+      <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 2000 }}>
+        <button
+          onClick={handlePlayPause}
+          style={{
+            background: isPlaying ? '#ef4444' : '#22c55e',
+            border: 'none',
+            borderRadius: '6px',
+            color: 'white',
+            padding: '8px 16px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isPlaying ? '⏸️ Pause Music' : '▶️ Play Music'}
+        </button>
+        <audio ref={audioRef} src="/bg-music.mp3" loop preload="auto" />
+      </div>
+    </>
+  );
 }; 

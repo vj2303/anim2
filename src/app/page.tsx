@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { SceneManager } from '../components/SceneManager';
 import { CameraControls } from '../components/CameraControls';
@@ -47,6 +47,30 @@ export default function DottedPath() {
   // Spline overlay state
   const [showSplineOverlay, setShowSplineOverlay] = useState(false);
   const [splineSceneUrl, setSplineSceneUrl] = useState('https://prod.spline.design/i8eNphGELT2tDQVT/scene.splinecode');
+
+  // Music player state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePlayPause = useCallback(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    const handleEnded = () => setIsPlaying(false);
+    audioRef.current.addEventListener('ended', handleEnded);
+    return () => {
+      audioRef.current?.removeEventListener('ended', handleEnded);
+    };
+  }, []);
 
   // Initialize GSAP
   useGSAP();
@@ -318,6 +342,28 @@ export default function DottedPath() {
 
   return (
     <div ref={containerRef} style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      {/* Music Play/Pause Button */}
+      <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 2000 }}>
+        <button
+          onClick={handlePlayPause}
+          style={{
+            background: isPlaying ? '#ef4444' : '#22c55e',
+            border: 'none',
+            borderRadius: '6px',
+            color: 'white',
+            padding: '8px 16px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isPlaying ? '⏸️ Pause Music' : '▶️ Play Music'}
+        </button>
+        <audio ref={audioRef} src="/bg-music.mp3" loop preload="auto" />
+      </div>
+      
       {/* Existing Three.js scene is rendered here by appending renderer.domElement */}
       
       {/* Spline Overlay */}
