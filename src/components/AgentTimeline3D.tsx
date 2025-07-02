@@ -8,7 +8,27 @@ interface AgentTimeline3DProps {
   onAgentSelect?: (agentIndex: number) => void;
 }
 
-function AgentPoint({ position, agent, index, onClick, isSelected }: any) {
+interface Agent {
+  name: string;
+  description: string;
+  // Add other properties from your AIAgents constant as needed
+}
+
+interface AgentPointProps {
+  position: [number, number, number];
+  agent: Agent;
+  index: number;
+  onClick: (index: number) => void;
+  isSelected: boolean;
+}
+
+interface FloatingAgentInfoProps {
+  agent: Agent;
+  position: [number, number, number];
+  onNameClick?: () => void;
+}
+
+function AgentPoint({ position, agent, index, onClick, isSelected }: AgentPointProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   // Animate scale if selected
   useFrame(() => {
@@ -64,7 +84,7 @@ function AgentHalo({ position }: { position: [number, number, number] }) {
   );
 }
 
-function FloatingAgentInfo({ agent, position, onNameClick }: { agent: any; position: [number, number, number]; onNameClick?: () => void }) {
+function FloatingAgentInfo({ agent, position, onNameClick }: FloatingAgentInfoProps) {
   // Simple floating text panel
   const panelRef = useRef<THREE.Group>(null);
   useFrame(() => {
@@ -171,4 +191,4 @@ const AgentTimeline3D: React.FC<AgentTimeline3DProps> = ({ onAgentSelect }) => {
   );
 };
 
-export default AgentTimeline3D; 
+export default AgentTimeline3D;

@@ -69,11 +69,14 @@ export default function DottedPath() {
   }, [isPlaying]);
 
   useEffect(() => {
-    if (!audioRef.current) return;
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+    
     const handleEnded = () => setIsPlaying(false);
-    audioRef.current.addEventListener('ended', handleEnded);
+    audioElement.addEventListener('ended', handleEnded);
+    
     return () => {
-      audioRef.current?.removeEventListener('ended', handleEnded);
+      audioElement.removeEventListener('ended', handleEnded);
     };
   }, []);
 
