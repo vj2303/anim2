@@ -252,6 +252,25 @@ export class PathRenderer {
         const splineGroup = this.createSplineObject(globalRowIndex, curveOffset, distance, elevation + 2);
         this.cardsGroupRef.current.add(splineGroup);
       }
+
+      // Add animated side objects (left and right) every 20 rows
+      if (globalRowIndex > 0 && globalRowIndex % 20 === 0 && this.cardsGroupRef.current) {
+        // Use a strong horizontal offset for left and right
+        const cameraDistance = 25;
+        const fov = 75;
+        const screenWidth = 2 * Math.tan((fov * Math.PI / 180) / 2) * cameraDistance;
+        const horizontalOffset = screenWidth * 0.35;
+        // Left side object
+        const leftShape = this.shapeManager.createVariousShapes(globalRowIndex, curveOffset, distance);
+        leftShape.position.x = curveOffset - horizontalOffset;
+        leftShape.position.y = elevation + 2;
+        this.cardsGroupRef.current.add(leftShape);
+        // Right side object
+        const rightShape = this.shapeManager.createVariousShapes(globalRowIndex, curveOffset, distance);
+        rightShape.position.x = curveOffset + horizontalOffset;
+        rightShape.position.y = elevation + 2;
+        this.cardsGroupRef.current.add(rightShape);
+      }
     }
   }
 

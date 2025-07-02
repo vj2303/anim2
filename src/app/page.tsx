@@ -14,6 +14,7 @@ import { AgentInfoManager } from '../components/AgentInfoManager';
 import { useGSAP } from '../hooks/useGSAP';
 import { AIAgents } from '../constants/AIAgents';
 import Spline from '@splinetool/react-spline';
+import AgentInfoCube from '../components/AgentInfoCube';
 
 export default function DottedPath() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,6 +52,10 @@ export default function DottedPath() {
   // Music player state
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Agent info cube overlay state
+  const [showAgentCube, setShowAgentCube] = useState(false);
+  const [cubeAgent, setCubeAgent] = useState<{ name: string; description: string; icon?: string } | null>(null);
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return;
@@ -334,10 +339,14 @@ export default function DottedPath() {
 
   // Handler for agent click
   const handleAgentClick = (agentIndex: number) => {
-    // Show agent info in a big card using AgentInfoManager
-    if (agentInfoManagerRef.current) {
-      agentInfoManagerRef.current.showAgentInfo(AIAgents[agentIndex]);
-    }
+    // Show agent info in a 3D cube overlay
+    const agent = AIAgents[agentIndex];
+    // Extract emoji (icon) and name
+    const match = agent.name.match(/^([\p{Emoji}\p{Extended_Pictographic}]+)\s*(.*)$/u);
+    const icon = match ? match[1] : '';
+    const name = match ? match[2] : agent.name;
+    setCubeAgent({ name, description: agent.description, icon });
+    setShowAgentCube(true);
   };
 
   return (
@@ -406,6 +415,14 @@ export default function DottedPath() {
             </button>
           </div>
         </div>
+      )}
+      
+      {/* Agent Info 3D Cube Overlay */}
+      {showAgentCube && cubeAgent && (
+        <AgentInfoCube
+          agent={cubeAgent}
+          onClose={() => setShowAgentCube(false)}
+        />
       )}
       
       {/* Audio Manager for Background Music */}
