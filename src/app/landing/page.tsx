@@ -9,9 +9,21 @@ export default function AnimatedCircles() {
   const svgRef = useRef<SVGSVGElement>(null);
   const [showText, setShowText] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    // Listen for first scroll
+    const handleScroll = () => {
+      setHasScrolled(true);
+      window.removeEventListener('scroll', handleScroll);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!hasScrolled) return; // Only animate after scroll
     // Animate the SVG paths when component mounts
     const paths = svgRef.current?.querySelectorAll<SVGPathElement>('.intro__logo__path');
     
@@ -29,7 +41,7 @@ export default function AnimatedCircles() {
         setShowText(true);
       }, totalAnimationTime);
     }
-  }, []);
+  }, [hasScrolled]);
 
   const handleEnterClick = () => {
     // Navigate to main page
@@ -103,18 +115,33 @@ export default function AnimatedCircles() {
               c0-49.7,40.3-90,90-90c49.7,0,89.9,40.3,90,90c0,29.8,24.2,54,54,54s54-24.2,54-54"
           />
           
+          {/* Center text that appears before scroll */}
+          {!hasScrolled && (
+            <text
+              x="252"
+              y="105"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="center-text is-visible pre-scroll-text"
+              style={{ cursor: 'default', fill: '#007acc' }}
+            >
+              Start scroll to explore
+            </text>
+          )}
           {/* Center text that appears after animation */}
-          <text 
-            x="252" 
-            y="105" 
-            textAnchor="middle" 
-            dominantBaseline="middle"
-            className={`center-text ${showText ? 'is-visible' : ''}`}
-            onClick={handleEnterClick}
-            style={{ cursor: showText ? 'pointer' : 'default' }}
-          >
-            ENTER
-          </text>
+          {hasScrolled && (
+            <text 
+              x="252" 
+              y="105" 
+              textAnchor="middle" 
+              dominantBaseline="middle"
+              className={`center-text ${showText ? 'is-visible' : ''}`}
+              onClick={handleEnterClick}
+              style={{ cursor: showText ? 'pointer' : 'default' }}
+            >
+              ENTER
+            </text>
+          )}
         </svg>
       </div>
 
@@ -239,6 +266,23 @@ export default function AnimatedCircles() {
           }
         }
 
+        .pre-scroll-text {
+          font-size: 22px;
+          fill: #007acc;
+          opacity: 1;
+          animation: preScrollPulse 1.2s ease-in-out infinite;
+        }
+        @keyframes preScrollPulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.05);
+          }
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
           .intro__logo__svg {
@@ -267,3 +311,7 @@ export default function AnimatedCircles() {
     </div>
   );
 }
+
+
+
+

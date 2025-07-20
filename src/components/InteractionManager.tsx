@@ -24,6 +24,15 @@ interface GSAP {
   to: (target: unknown, vars: unknown) => unknown;
 }
 
+// Audio for shape interaction
+const particleAudio = typeof window !== 'undefined' ? new Audio('/particle-movement.wav') : null;
+function playParticleAudio() {
+  if (particleAudio) {
+    particleAudio.currentTime = 0;
+    particleAudio.play();
+  }
+}
+
 export class InteractionManager {
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
@@ -256,6 +265,7 @@ export class InteractionManager {
 
   // Start dot hover animation
   private startDotHoverAnimation(object: THREE.Object3D): void {
+    playParticleAudio();
     const gsap = (window as unknown as { gsap?: GSAP }).gsap;
     if (!gsap) return;
 
@@ -308,6 +318,7 @@ export class InteractionManager {
 
   // Start shape hover animation with diverse effects
   private startShapeHoverAnimation(object: THREE.Object3D, shapeType: string): void {
+    playParticleAudio();
     if ((shapeType === 'cube' || shapeType === 'breakable_cube') && this.shapeManager && this.cardsGroupRef.current) {
       // Only break if not already broken
       if (!this.brokenCubeMap.has(object)) {
@@ -659,6 +670,7 @@ export class InteractionManager {
 
   // Generic shape hover animation
   private animateGenericShapeHover(object: THREE.Object3D): void {
+    playParticleAudio();
     const gsap = (window as unknown as { gsap?: GSAP }).gsap;
     if (!gsap) return;
     const timeline = gsap.timeline();
@@ -800,6 +812,7 @@ export class InteractionManager {
 
   // Start generic object hover animation
   private startGenericObjectHoverAnimation(object: THREE.Object3D): void {
+    playParticleAudio();
     const gsap = (window as unknown as { gsap?: GSAP }).gsap;
     if (!gsap) return;
 

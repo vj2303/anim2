@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -58,19 +58,50 @@ function createFaceMaterials(agent: AgentInfo) {
 
 function RotatingCube({ agent, size = 4 }: { agent: AgentInfo; size?: number }) {
   const ref = useRef<THREE.Mesh>(null);
-  useFrame(() => {
+  const [hovered, setHovered] = useState(false);
+  const [pulse, setPulse] = useState(0);
+  // Audio for interaction
+  const particleAudio = useMemo(() => typeof window !== 'undefined' ? new Audio('/particle-movement.wav') : null, []);
+  useFrame((_, delta) => {
     if (ref.current) {
       ref.current.rotation.y += 0.01;
       ref.current.rotation.x += 0.005;
+      // Pulse effect
+      if (hovered) {
+        setPulse((p) => (p + delta * 4) % (2 * Math.PI));
+        const scale = 1.15 + Math.sin(pulse) * 0.08;
+        ref.current.scale.set(scale, scale, scale);
+      } else {
+        ref.current.scale.lerp(new THREE.Vector3(1, 1, 1), 0.2);
+      }
     }
   });
   const materials = useMemo(() => createFaceMaterials(agent), [agent]);
   return (
-    <mesh ref={ref}>
+    <mesh
+      ref={ref}
+      onPointerOver={() => {
+        setHovered(true);
+        if (particleAudio) {
+          particleAudio.currentTime = 0;
+          particleAudio.play();
+        }
+      }}
+      onPointerOut={() => setHovered(false)}
+      castShadow
+      receiveShadow
+    >
       <boxGeometry args={[size, size, size]} />
       {materials.map((mat, i) => (
         <primitive attach={`material-${i}`} object={mat} key={i} />
       ))}
+      {/* Optional: Add a subtle glow effect when hovered */}
+      {hovered && (
+        <mesh>
+          <boxGeometry args={[size * 1.12, size * 1.12, size * 1.12]} />
+          <meshBasicMaterial color="#4ade80" transparent opacity={0.18} />
+        </mesh>
+      )}
     </mesh>
   );
 }

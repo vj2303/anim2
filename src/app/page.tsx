@@ -57,6 +57,8 @@ export default function DottedPath() {
   const [showAgentCube, setShowAgentCube] = useState(false);
   const [cubeAgent, setCubeAgent] = useState<{ name: string; description: string; icon?: string } | null>(null);
 
+  const hasScrolledRef = useRef(false);
+
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return;
     if (isPlaying) {
@@ -164,7 +166,8 @@ export default function DottedPath() {
       dotsArrayRef,
       textMeshesRef,
       positionRef,
-      cameraRef
+      cameraRef,
+      hasScrolledRef
     );
     pathRendererRef.current = pathRenderer;
     pathRenderer.initializeFloatingText();
@@ -282,9 +285,23 @@ export default function DottedPath() {
     };
     window.addEventListener('resize', handleResize);
 
+    // Listen for first scroll to update hasScrolledRef
+    const handleFirstScroll = () => {
+      if (!hasScrolledRef.current) {
+        hasScrolledRef.current = true;
+        // Re-render the path to show/hide floating text and allow movement
+        if (pathRendererRef.current) {
+          pathRendererRef.current.createDottedPath();
+        }
+      }
+      window.removeEventListener('scroll', handleFirstScroll);
+    };
+    window.addEventListener('scroll', handleFirstScroll);
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleFirstScroll);
       
       // Remove interaction event listeners
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);

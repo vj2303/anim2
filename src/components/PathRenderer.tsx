@@ -3,6 +3,7 @@ import { MutableRefObject } from 'react';
 import { TextureManager } from './TextureManager';
 import { SimpleFloatingText3D } from './FloatingText3D';
 import { ShapeManager } from './ShapeManager';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
 
 export class PathRenderer {
   private dotsGroupRef: MutableRefObject<THREE.Group | null>;
@@ -18,6 +19,9 @@ export class PathRenderer {
   
   // Track milestone text objects like AI agents
   private milestoneTextMeshes: Map<number, THREE.Group> = new Map();
+  
+  // Add scroll threshold to prevent movement until user scrolls
+  private scrollThreshold: number = 0.1; // Minimum scroll amount to start movement
 
   constructor(
     dotsGroupRef: MutableRefObject<THREE.Group | null>,
@@ -132,6 +136,11 @@ export class PathRenderer {
     animate();
   }
 
+  // Check if scroll has started (user has scrolled beyond threshold)
+  private hasScrollStarted(): boolean {
+    return this.positionRef.current > this.scrollThreshold;
+  }
+
   // Updated createDottedPath method using ShapeManager
   createDottedPath(): void {
     if (!this.dotsGroupRef.current || !this.cardsGroupRef.current || !this.textGroupRef.current) return;
@@ -158,11 +167,11 @@ export class PathRenderer {
       const progress = Math.abs(i) / visibleRange;
       const opacity = Math.max(0.1, 1 - (progress * 0.8));
       
-      // Calculate rounded curve with smooth transitions
-      const curveOffset = this.calculateRoundedCurve(globalRowIndex);
+      // Calculate rounded curve with smooth transitions - only if scroll has started
+      const curveOffset = this.hasScrollStarted() ? this.calculateRoundedCurve(globalRowIndex) : 0;
       
-      // Calculate elevation for helix effect
-      const elevation = this.calculateHelixElevation(globalRowIndex);
+      // Calculate elevation for helix effect - only if scroll has started
+      const elevation = this.hasScrollStarted() ? this.calculateHelixElevation(globalRowIndex) : 0.01;
       
       // Create 6 dots per row spread across full screen width
       for (let col = 0; col < 6; col++) {
@@ -206,32 +215,32 @@ export class PathRenderer {
         this.dotsGroupRef.current.add(dot);
       }
 
-      // Add milestone text every 40 dots - using ShapeManager
-      if (globalRowIndex > 0 && globalRowIndex % 40 === 0) {
+      // Add milestone text every 40 dots - using ShapeManager - only if scroll has started
+      if (globalRowIndex > 0 && globalRowIndex % 40 === 0 && this.hasScrollStarted()) {
         const milestoneText = this.shapeManager.createMilestoneText(globalRowIndex, curveOffset, distance);
         // Apply elevation to milestone text
         milestoneText.position.y = elevation;
         this.textGroupRef.current.add(milestoneText);
       }
 
-    
-      if (globalRowIndex > 0 && globalRowIndex % 60 === 0) {
+      // Add agent boxes - only if scroll has started
+      if (globalRowIndex > 0 && globalRowIndex % 60 === 0 && this.hasScrollStarted()) {
         const agentBox = this.shapeManager.createAgentBox(globalRowIndex, curveOffset, distance);
         // Apply elevation to agent box
         agentBox.position.y = elevation;
         this.cardsGroupRef.current.add(agentBox);
       }
 
-      // Add various 3D shapes every 15 dots for more variety - using ShapeManager
-      if (globalRowIndex > 0 && globalRowIndex % 15 === 0 && globalRowIndex % 60 !== 0) {
+      // Add various 3D shapes every 30 dots for more variety - using ShapeManager
+      if (globalRowIndex > 0 && globalRowIndex % 30 === 0 && globalRowIndex % 120 !== 0 && this.hasScrollStarted()) {
         const variousShape = this.shapeManager.createVariousShapes(globalRowIndex, curveOffset, distance);
         // Apply elevation to various shapes
         variousShape.position.y = elevation;
         this.cardsGroupRef.current.add(variousShape);
       }
 
-      // Add breakable cubes on both sides every 50 dots
-      if (globalRowIndex > 0 && globalRowIndex % 50 === 0 && this.cardsGroupRef.current) {
+      // Add breakable cubes on both sides every 100 dots
+      if (globalRowIndex > 0 && globalRowIndex % 100 === 0 && this.cardsGroupRef.current && this.hasScrollStarted()) {
         const breakableCubes = this.shapeManager.createBreakableCubesBothSides(globalRowIndex, curveOffset, distance);
         breakableCubes.forEach(cube => {
           cube.position.y = elevation;
@@ -239,22 +248,22 @@ export class PathRenderer {
         });
       }
 
-      // Add smaller decorative shapes every 8 dots - using ShapeManager
-      if (globalRowIndex > 0 && globalRowIndex % 8 === 0 && globalRowIndex % 15 !== 0) {
+      // Add smaller decorative shapes every 16 dots - using ShapeManager
+      if (globalRowIndex > 0 && globalRowIndex % 16 === 0 && globalRowIndex % 30 !== 0 && this.hasScrollStarted()) {
         const decorativeShape = this.shapeManager.createDecorativeShapes(globalRowIndex, curveOffset, distance);
         // Apply elevation to decorative shapes
         decorativeShape.position.y = elevation;
         this.cardsGroupRef.current.add(decorativeShape);
       }
 
-      // Add Spline 3D object every 45 dots
-      if (globalRowIndex > 0 && globalRowIndex % 45 === 0) {
+      // Add Spline 3D object every 90 dots
+      if (globalRowIndex > 0 && globalRowIndex % 90 === 0 && this.hasScrollStarted()) {
         const splineGroup = this.createSplineObject(globalRowIndex, curveOffset, distance, elevation + 2);
         this.cardsGroupRef.current.add(splineGroup);
       }
 
-      // Add animated side objects (left and right) every 20 rows
-      if (globalRowIndex > 0 && globalRowIndex % 20 === 0 && this.cardsGroupRef.current) {
+      // Add animated side objects (left and right) every 40 rows
+      if (globalRowIndex > 0 && globalRowIndex % 40 === 0 && this.cardsGroupRef.current && this.hasScrollStarted()) {
         // Use a strong horizontal offset for left and right
         const cameraDistance = 25;
         const fov = 75;
@@ -272,21 +281,52 @@ export class PathRenderer {
         this.cardsGroupRef.current.add(rightShape);
       }
     }
+
+    // Add 'Scroll to Explore' text at the start of the dotted path
+    if (this.cardsGroupRef.current) {
+      const startTextGeometry = new TextGeometry('Scroll to Explore', {
+        font: (window as any).mainFont, // Assumes font is loaded and available globally
+        size: 3,
+        height: 0.3,
+        curveSegments: 8,
+        bevelEnabled: true,
+        bevelThickness: 0.1,
+        bevelSize: 0.1,
+        bevelOffset: 0,
+        bevelSegments: 2
+      });
+      const startTextMaterial = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+      const startTextMesh = new THREE.Mesh(startTextGeometry, startTextMaterial);
+      // Place above the first visible dot
+      startTextMesh.position.set(0, 12, 8 * visibleRange + 10); // y=12 above path, z in front
+      startTextMesh.rotation.y = 0;
+      startTextMesh.castShadow = false;
+      startTextMesh.receiveShadow = false;
+      this.cardsGroupRef.current.add(startTextMesh);
+    }
   }
 
   private calculateRoundedCurve(globalRowIndex: number): number {
+    // Only calculate curve if scroll has started
+    if (!this.hasScrollStarted()) {
+      return 0;
+    }
+
     // Calculate screen dimensions for proper scaling
     const cameraDistance = 25;
     const fov = 75;
     const screenWidth = 2 * Math.tan((fov * Math.PI / 180) / 2) * cameraDistance;
     
-    // Create a helix-like structure starting immediately
+    // Adjust globalRowIndex to start curve calculation from when scroll begins
+    const adjustedRowIndex = globalRowIndex - this.scrollThreshold;
+    
+    // Create a helix-like structure starting from scroll start
     // Parameters for the helix
     const helixRadius = screenWidth * 0.25; // Radius of the helix
     const helixSpeed = 0.1; // Speed of rotation along the helix
     
-    // Calculate the angle for the helix - start immediately from row 0
-    const angle = globalRowIndex * helixSpeed;
+    // Calculate the angle for the helix - start from when scroll begins
+    const angle = Math.max(0, adjustedRowIndex) * helixSpeed;
     
     // Create the main helix curve
     const xOffset = Math.cos(angle) * helixRadius;
@@ -301,11 +341,11 @@ export class PathRenderer {
     const helixOffset = xOffset + secondaryWave + tertiaryWave;
     
     // Add some organic variation for natural feel
-    const organicVariation = Math.sin(globalRowIndex * 0.015) * (screenWidth * 0.01) +
-                            Math.cos(globalRowIndex * 0.025) * (screenWidth * 0.005);
+    const organicVariation = Math.sin(adjustedRowIndex * 0.015) * (screenWidth * 0.01) +
+                            Math.cos(adjustedRowIndex * 0.025) * (screenWidth * 0.005);
     
-    // Apply smooth easing for natural transitions - start immediately
-    const progress = Math.min(1, globalRowIndex / 10); // Faster transition over first 10 rows
+    // Apply smooth easing for natural transitions - start from scroll beginning
+    const progress = Math.min(1, Math.max(0, adjustedRowIndex) / 10); // Faster transition over first 10 rows after scroll starts
     const easedProgress = this.smoothStep(progress);
     
     return helixOffset * easedProgress + organicVariation;
@@ -319,20 +359,26 @@ export class PathRenderer {
   
   // Optional: Add a method to get the current angle for debugging or other purposes
   private getCurrentCircleAngle(globalRowIndex: number): number {
+    // Only calculate if scroll has started
+    if (!this.hasScrollStarted()) {
+      return -Math.PI / 2; // Default starting position
+    }
+
+    const adjustedRowIndex = globalRowIndex - this.scrollThreshold;
     const totalAgents = 20;
     const anglePerAgent = (2 * Math.PI) / totalAgents;
     
     // Handle the very beginning (before first agent)
-    if (globalRowIndex < 60) {
+    if (adjustedRowIndex < 60) {
       const startAngle = -Math.PI / 2; // Start at top of circle
       const firstAgentAngle = 0; // First agent at 3 o'clock
-      const progress = globalRowIndex / 60;
+      const progress = adjustedRowIndex / 60;
       const smoothProgress = this.smoothStep(progress);
       return startAngle + ((firstAgentAngle - startAngle) * smoothProgress);
     }
     
-    const agentSection = Math.floor(globalRowIndex / 60);
-    const positionInSection = globalRowIndex % 60;
+    const agentSection = Math.floor(adjustedRowIndex / 60);
+    const positionInSection = adjustedRowIndex % 60;
     const currentAgentAngle = (agentSection - 1) * anglePerAgent;
     const nextAgentAngle = agentSection * anglePerAgent;
     const sectionProgress = positionInSection / 60;
@@ -367,12 +413,20 @@ export class PathRenderer {
 
   // Calculate elevation for helix effect
   private calculateHelixElevation(globalRowIndex: number): number {
+    // Only calculate elevation if scroll has started
+    if (!this.hasScrollStarted()) {
+      return 0.01; // Default ground level
+    }
+
+    // Adjust globalRowIndex to start elevation calculation from when scroll begins
+    const adjustedRowIndex = globalRowIndex - this.scrollThreshold;
+    
     // Parameters for the helix elevation
     const elevationAmplitude = 3; // Height variation in units
     const elevationSpeed = 0.15; // Speed of vertical movement
     
-    // Calculate the elevation angle - start immediately from row 0
-    const elevationAngle = globalRowIndex * elevationSpeed;
+    // Calculate the elevation angle - start from when scroll begins
+    const elevationAngle = Math.max(0, adjustedRowIndex) * elevationSpeed;
     
     // Create the main elevation wave
     const mainElevation = Math.sin(elevationAngle) * elevationAmplitude;
@@ -381,10 +435,10 @@ export class PathRenderer {
     const secondaryElevation = Math.cos(elevationAngle * 2) * (elevationAmplitude * 0.3);
     
     // Add some organic variation
-    const organicVariation = Math.sin(globalRowIndex * 0.02) * 0.5;
+    const organicVariation = Math.sin(adjustedRowIndex * 0.02) * 0.5;
     
-    // Apply smooth easing for natural transitions - start immediately
-    const progress = Math.min(1, globalRowIndex / 10); // Faster transition over first 10 rows
+    // Apply smooth easing for natural transitions - start from scroll beginning
+    const progress = Math.min(1, Math.max(0, adjustedRowIndex) / 10); // Faster transition over first 10 rows after scroll starts
     const easedProgress = this.smoothStep(progress);
     
     // Start from ground level and gradually apply elevation
@@ -398,6 +452,9 @@ export class PathRenderer {
   }
 
   private createTransitionMarker(globalRowIndex: number, curveOffset: number, distance: number): void {
+    // Only create transition markers if scroll has started
+    if (!this.hasScrollStarted()) return;
+
     // Create a special marker at the middle of each section to show direction change
     const markerGeometry = new THREE.ConeGeometry(1, 3, 6);
     const agentSection = Math.floor(globalRowIndex / 60);
@@ -455,3 +512,7 @@ export class PathRenderer {
     }
   }
 }
+
+
+
+
